@@ -1,91 +1,137 @@
-//
-//  AddMealView.swift
-//  MealTrackerApp
-//
-//  Created by Thrinai Batchu on 7/30/25.
-//
-
 import SwiftUI
-import PhotosUI
+import CoreData
 
 struct AddMealView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
 
-    @State private var mealName = ""
-    @State private var ingredients = ""
-    @State private var notes = ""
-    @State private var mealType = "Lunch"
-    @State private var selectedPhoto: PhotosPickerItem? = nil
-    @State private var imageData: Data? = nil
+    @State private var name: String = ""
+    @State private var notes: String = ""
+    @State private var mealType: String = "Lunch"
+    @State private var selectedIngredients: Set<Ingredient> = []
+    @State private var ingredientQuantities: [Ingredient: String] = [:]
+    @State private var totalCalories: Double = 0
 
     let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack"]
 
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Ingredient.name, ascending: true)],
+        animation: .default
+    ) private var ingredients: FetchedResults<Ingredient>
+
     var body: some View {
-        Form {
-            Section(header: Text("Meal Info")) {
-                TextField("Meal Name", text: $mealName)
-                Picker("Meal Type", selection: $mealType) {
-                    ForEach(mealTypes, id: \.self) { type in
-                        Text(type)
+        NavigationView {
+            Form {
+                Section(header: Text("Meal Info")) {
+                    TextField("Meal name", text: $name)
+
+                    Picker("Meal type", selection: $mealType) {
+                        ForEach(mealTypes, id: \.self) { type in
+                            Text(type)
+                        }
+                    }
+
+                    TextEditor(text: $notes)
+                        .frame(height: 80)
+                }
+
+                Section(header: Text("Ingredients")) {
+                    ForEach(ingredients, id: \.objectID) { ingredient in
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Button(action: {
+                                    toggleSelection(for: ingredient)
+                                }) {
+                                    HStack {
+                                        Image(systemName: selectedIngredients.contains(ingredient) ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(.blue)
+                                        Text(ingredient.name ?? "Unnamed Ingredient")
+                                    }
+                                }
+                            }
+
+                            if selectedIngredients.contains(ingredient) {
+                                HStack {
+                                    Text("Qty:")
+                                    TextField("e.g. 150", text: Binding(
+                                        get: { ingredientQuantities[ingredient] ?? "" },
+                                        set: {
+                                            ingredientQuantities[ingredient] = $0
+                                            recalculateCalories()
+                                        }
+                                    ))
+                                    .keyboardType(.decimalPad)
+                                    .frame(width: 80)
+                                    .textFieldStyle(.roundedBorder)
+
+                                    Text(ingredient.standardUnit ?? "")
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.leading, 30)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
-                TextEditor(text: $ingredients)
-                    .frame(height: 100)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
-                    .padding(.vertical, 5)
-            }
 
-            Section(header: Text("Photo")) {
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Choose a Photo", systemImage: "photo")
+                Section(header: Text("Total Calories")) {
+                    Text("\(totalCalories, specifier: "%.1f") kcal")
+                        .font(.headline)
                 }
-                if let data = imageData, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(12)
+
+                Button("Save Meal") {
+                    saveMeal()
                 }
+                .disabled(name.isEmpty || selectedIngredients.isEmpty)
             }
-
-            Section(header: Text("Notes")) {
-                TextEditor(text: $notes)
-                    .frame(height: 80)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
-            }
-
-            Button(action: saveMeal) {
-                Label("Save Meal", systemImage: "checkmark.circle")
-                    .frame(maxWidth: .infinity)
-            }
+            .navigationTitle("Add Meal")
+            .navigationBarItems(trailing: Button("Cancel") {
+                dismiss()
+            })
         }
-        .navigationTitle("Add Meal")
-        .onChange(of: selectedPhoto) { newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    self.imageData = data
-                }
-            }
+    }
+
+    private func toggleSelection(for ingredient: Ingredient) {
+        if selectedIngredients.contains(ingredient) {
+            selectedIngredients.remove(ingredient)
+            ingredientQuantities.removeValue(forKey: ingredient)
+        } else {
+            selectedIngredients.insert(ingredient)
+            ingredientQuantities[ingredient] = "1.0"
+        }
+        recalculateCalories()
+    }
+
+    private func recalculateCalories() {
+        totalCalories = selectedIngredients.reduce(0) { total, ingredient in
+            let qty = Double(ingredientQuantities[ingredient] ?? "") ?? 0
+            let perUnit = ingredient.caloriesPerUnit
+            let standardQty = ingredient.standardQuantity
+
+            guard standardQty > 0 else { return total }
+            return total + qty * (perUnit / standardQty)
         }
     }
 
     private func saveMeal() {
-        withAnimation {
-            let newMeal = Meal(context: viewContext)
-            newMeal.name = mealName
-            newMeal.ingredients = ingredients
-            newMeal.notes = notes
-            newMeal.mealType = mealType
-            newMeal.timestamp = Date()
-            newMeal.photo = imageData
+        let meal = Meal(context: viewContext)
+        meal.name = name
+        meal.notes = notes
+        meal.timestamp = Date()
+        meal.mealType = mealType
 
-            do {
-                try viewContext.save()
-                dismiss()
-            } catch {
-                print("Failed to save: \(error.localizedDescription)")
-            }
+        for ingredient in selectedIngredients {
+            let mealIngredient = MealIngredient(context: viewContext)
+            mealIngredient.meal = meal
+            mealIngredient.ingredient = ingredient
+            mealIngredient.quantity = Double(ingredientQuantities[ingredient] ?? "") ?? 0
+        }
+
+        do {
+            try viewContext.save()
+            dismiss()
+        } catch {
+            print("Failed to save meal: \(error.localizedDescription)")
         }
     }
 }
