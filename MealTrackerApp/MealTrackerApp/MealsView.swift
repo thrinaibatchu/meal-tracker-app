@@ -14,7 +14,7 @@ struct MealsView: View {
     @State private var selectedMealForEdit: Meal? = nil
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack(alignment: .bottomLeading) {
                 List {
                     ForEach(meals) { meal in
@@ -81,7 +81,7 @@ struct MealsView: View {
                 }
             }
             .sheet(isPresented: $showingAddMeal) {
-                NavigationView {
+                NavigationStack {
                     AddMealView(editMeal: selectedMealForEdit)
                         .environment(\.managedObjectContext, viewContext)
                 }
