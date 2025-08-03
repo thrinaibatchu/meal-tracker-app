@@ -98,7 +98,7 @@ struct MealsView: View {
     }
 
     private func mealTotalCalories(_ meal: Meal) -> Double {
-        let mealIngredients = (meal.mealIngredients as? Set<MealIngredient>)?.sorted(by: { $0.quantity > $1.quantity }) ?? []
+        let mealIngredients = meal.mealIngredients as? Set<MealIngredient> ?? []
 
         return mealIngredients.reduce(0) { total, mi in
             guard let ing = mi.ingredient, ing.standardQuantity > 0 else { return total }
