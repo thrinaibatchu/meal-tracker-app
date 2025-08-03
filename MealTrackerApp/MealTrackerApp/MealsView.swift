@@ -12,6 +12,8 @@ struct MealsView: View {
 
     @State private var showingAddMeal = false
     @State private var selectedMealForEdit: Meal? = nil
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
 
     var body: some View {
         NavigationView {
@@ -86,6 +88,11 @@ struct MealsView: View {
                         .environment(\.managedObjectContext, viewContext)
                 }
             }
+            .alert("Error", isPresented: $showDeleteError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(deleteErrorMessage)
+            }
         }
     }
 
@@ -94,7 +101,13 @@ struct MealsView: View {
             let meal = meals[index]
             viewContext.delete(meal)
         }
-        try? viewContext.save()
+        do {
+            try viewContext.save()
+        } catch {
+            deleteErrorMessage = "Failed to delete meal: \(error.localizedDescription)"
+            showDeleteError = true
+            print(deleteErrorMessage)
+        }
     }
 
     private func mealTotalCalories(_ meal: Meal) -> Double {
