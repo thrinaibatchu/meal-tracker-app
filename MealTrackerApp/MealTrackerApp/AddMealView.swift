@@ -118,7 +118,7 @@ struct AddMealView: View {
                     preloadMeal(meal)
                 }
             }
-            .onChange(of: selectedPhotoItem) { newItem in
+            .onChange(of: selectedPhotoItem) { _, newItem in
                 if let item = newItem {
                     Task {
                         if let data = try? await item.loadTransferable(type: Data.self),

@@ -12,6 +12,10 @@ struct MealsView: View {
 
     @State private var showingAddMeal = false
     @State private var selectedMealForEdit: Meal? = nil
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
+    @State private var previewImage: UIImage? = nil
+    @State private var showImagePreview = false
 
     var body: some View {
         NavigationView {
@@ -24,9 +28,12 @@ struct MealsView: View {
                                 Image(uiImage: uiImage)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                                    .frame(height: 140)
-                                    .clipped()
-                                    .cornerRadius(8)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .onLongPressGesture {
+                                        previewImage = uiImage
+                                        showImagePreview = true
+                                    }
                             }
 
                             Text(meal.name ?? "Unnamed Meal")
@@ -49,7 +56,6 @@ struct MealsView: View {
                         .contentShape(Rectangle())
                         .onTapGesture {
                             selectedMealForEdit = meal
-                            showingAddMeal = true
                         }
                     }
                     .onDelete(perform: deleteMeal)
@@ -63,10 +69,9 @@ struct MealsView: View {
                 }
 
                 // Floating Add Button
-                Button(action: {
-                    selectedMealForEdit = nil
-                    showingAddMeal = true
-                }) {
+                  Button(action: {
+                      showingAddMeal = true
+                  }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Meal")
@@ -79,22 +84,58 @@ struct MealsView: View {
                     .padding(.leading, 20)
                     .padding(.bottom, 20)
                 }
-            }
-            .sheet(isPresented: $showingAddMeal) {
-                NavigationView {
-                    AddMealView(editMeal: selectedMealForEdit)
-                        .environment(\.managedObjectContext, viewContext)
-                }
-            }
-        }
-    }
+              }
+              .sheet(item: $selectedMealForEdit) { meal in
+                  NavigationView {
+                      AddMealView(editMeal: meal)
+                          .environment(\.managedObjectContext, viewContext)
+                  }
+              }
+              .sheet(isPresented: $showingAddMeal) {
+                  NavigationView {
+                      AddMealView(editMeal: nil)
+                          .environment(\.managedObjectContext, viewContext)
+                  }
+              }
+              .alert("Error", isPresented: $showDeleteError) {
+                  Button("OK", role: .cancel) { }
+              } message: {
+                  Text(deleteErrorMessage)
+              }
+              .fullScreenCover(isPresented: $showImagePreview) {
+                  ZStack(alignment: .topTrailing) {
+                      Color.black.ignoresSafeArea()
+                      if let image = previewImage {
+                          Image(uiImage: image)
+                              .resizable()
+                              .scaledToFit()
+                              .padding()
+                      }
+                      Button {
+                          showImagePreview = false
+                      } label: {
+                          Image(systemName: "xmark.circle.fill")
+                              .font(.largeTitle)
+                              .padding()
+                              .foregroundColor(.white)
+                      }
+                  }
+              }
+          }
+      }
 
     private func deleteMeal(at offsets: IndexSet) {
         for index in offsets {
             let meal = meals[index]
             viewContext.delete(meal)
         }
-        try? viewContext.save()
+        do {
+            try viewContext.save()
+        } catch {
+            deleteErrorMessage = "Failed to delete meal: \(error.localizedDescription)"
+            showDeleteError = true
+            print(deleteErrorMessage)
+        }
     }
 
     private func mealTotalCalories(_ meal: Meal) -> Double {
