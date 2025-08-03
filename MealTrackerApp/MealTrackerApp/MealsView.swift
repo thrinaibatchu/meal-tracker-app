@@ -22,7 +22,7 @@ struct MealsView: View {
             ZStack(alignment: .bottomLeading) {
                 List {
                     ForEach(meals) { meal in
-                        VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .top, spacing: 12) {
                             if let imageData = meal.photo,
                                let uiImage = UIImage(data: imageData) {
                                 Image(uiImage: uiImage)
@@ -30,30 +30,37 @@ struct MealsView: View {
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 70, height: 70)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .onLongPressGesture {
-                                        previewImage = uiImage
-                                        showImagePreview = true
-                                    }
                             }
 
-                            Text(meal.name ?? "Unnamed Meal")
-                                .font(.headline)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(meal.name ?? "Unnamed Meal")
+                                    .font(.headline)
+                                
+                                Text(meal.mealType ?? "")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
 
-                            Text(meal.mealType ?? "")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                                Text("Calories: \(mealTotalCalories(meal), specifier: "%.1f") kcal")
+                                    .font(.subheadline)
 
-                            Text("Calories: \(mealTotalCalories(meal), specifier: "%.1f") kcal")
-                                .font(.subheadline)
-
-                            if let ts = meal.timestamp {
-                                Text(ts.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                if let ts = meal.timestamp {
+                                    Text(ts.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
+                        .highPriorityGesture(
+                            LongPressGesture().onEnded { _ in
+                                if let imageData = meal.photo,
+                                   let uiImage = UIImage(data: imageData) {
+                                    previewImage = uiImage
+                                    showImagePreview = true
+                                }
+                            }
+                        )
                         .onTapGesture {
                             selectedMealForEdit = meal
                             showingAddMeal = true
