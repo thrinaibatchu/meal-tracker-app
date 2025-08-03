@@ -2,31 +2,31 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Entity" representedClassName="Entity" syncable="YES" codeGenerationType="class"/>
     <entity name="Ingredient" representedClassName="Ingredient" syncable="YES" codeGenerationType="class">
-        <attribute name="calories" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="caloriesPerUnit" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="calories" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="caloriesPerUnit" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="foodType" optional="YES" attributeType="String"/>
         <attribute name="image" optional="YES" attributeType="Binary"/>
-        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
         <attribute name="nutritionFacts" optional="YES" attributeType="String"/>
         <attribute name="quantityType" optional="YES" attributeType="String"/>
-        <attribute name="standardQuantity" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="standardQuantity" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="standardUnit" optional="YES" attributeType="String"/>
         <attribute name="unit" optional="YES" attributeType="String"/>
-        <relationship name="mealIngredients" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MealIngredient" inverseName="ingredient" inverseEntity="MealIngredient"/>
+        <relationship name="mealIngredients" toMany="YES" deletionRule="Nullify" destinationEntity="MealIngredient" inverseName="ingredient" inverseEntity="MealIngredient"/>
     </entity>
     <entity name="Meal" representedClassName=".Meal" syncable="YES" codeGenerationType="class">
         <attribute name="ingredients" optional="YES" attributeType="String"/>
-        <attribute name="mealType" optional="YES" attributeType="String"/>
-        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="mealType" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="photo" optional="YES" attributeType="Binary"/>
         <attribute name="steps" optional="YES" attributeType="String"/>
-        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <relationship name="mealIngredients" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MealIngredient" inverseName="meal" inverseEntity="MealIngredient"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="mealIngredients" toMany="YES" deletionRule="Nullify" destinationEntity="MealIngredient" inverseName="meal" inverseEntity="MealIngredient"/>
     </entity>
     <entity name="MealIngredient" representedClassName="MealIngredient" syncable="YES" codeGenerationType="class">
-        <attribute name="quantity" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <relationship name="ingredient" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Ingredient" inverseName="mealIngredients" inverseEntity="Ingredient"/>
-        <relationship name="meal" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Meal" inverseName="mealIngredients" inverseEntity="Meal"/>
+        <attribute name="quantity" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="ingredient" maxCount="1" deletionRule="Nullify" destinationEntity="Ingredient" inverseName="mealIngredients" inverseEntity="Ingredient"/>
+        <relationship name="meal" maxCount="1" deletionRule="Nullify" destinationEntity="Meal" inverseName="mealIngredients" inverseEntity="Meal"/>
     </entity>
 </model>

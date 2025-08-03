@@ -10,6 +10,7 @@ struct MealsView: View {
     ) private var meals: FetchedResults<Meal>
 
     @State private var showingAddMeal = false
+    @State private var mealToEdit: Meal? = nil
 
     var body: some View {
         NavigationView {
@@ -33,15 +34,21 @@ struct MealsView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
+                        .contentShape(Rectangle()) // Makes entire row tappable
+                        .onTapGesture {
+                            mealToEdit = meal
+                        }
                     }
                     .onDelete(perform: deleteMeal)
                 }
                 .navigationTitle("Meals")
                 .toolbar {
-                    EditButton()
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        EditButton()
+                    }
                 }
 
-                // 💡 Floating Add Button (bottom left)
+                // Floating Add Button
                 Button(action: {
                     showingAddMeal = true
                 }) {
@@ -61,6 +68,12 @@ struct MealsView: View {
                     AddMealView()
                         .environment(\.managedObjectContext, viewContext)
                 }
+
+                // Editing Existing Meal
+                .sheet(item: $mealToEdit) { meal in
+                    AddMealView(existingMeal: meal)
+                        .environment(\.managedObjectContext, viewContext)
+                }
             }
         }
     }
@@ -74,13 +87,10 @@ struct MealsView: View {
     }
 
     private func mealTotalCalories(_ meal: Meal) -> Double {
-        if let mealIngredients = meal.mealIngredients as? Set<MealIngredient> {
-            return mealIngredients.reduce(0) { total, mi in
-                guard let ing = mi.ingredient, ing.standardQuantity > 0 else { return total }
-                let qty = mi.quantity
-                return total + qty * (ing.calories / ing.standardQuantity)
-            }
+        let mealIngredients = (meal.mealIngredients as? Set<MealIngredient>)?.sorted(by: { $0.quantity > $1.quantity }) ?? []
+        return mealIngredients.reduce(0) { total, mi in
+            guard let ing = mi.ingredient, ing.standardQuantity > 0 else { return total }
+            return total + mi.quantity * (ing.calories / ing.standardQuantity)
         }
-        return 0
     }
 }

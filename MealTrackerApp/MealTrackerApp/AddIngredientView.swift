@@ -15,6 +15,9 @@ struct AddIngredientView: View {
     @State private var selectedImage: PhotosPickerItem?
     @State private var imageData: Data?
 
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+
     let foodTypes = ["Carb", "Protein", "Fat", "Vegetable", "Fruit", "Dairy", "Other"]
     let quantityUnits = ["gram", "oz", "ml", "tbsp", "tsp", "cup"]
 
@@ -76,7 +79,7 @@ struct AddIngredientView: View {
                 }
 
                 Button("Save Ingredient") {
-                    saveIngredient()
+                    validateAndSave()
                 }
                 .disabled(name.isEmpty || calories.isEmpty || standardQuantity.isEmpty)
             }
@@ -84,6 +87,11 @@ struct AddIngredientView: View {
             .navigationBarItems(trailing: Button("Cancel") {
                 dismiss()
             })
+            .alert("Invalid Input", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
             .onChange(of: selectedImage) {
                 Task {
                     if let data = try? await selectedImage?.loadTransferable(type: Data.self) {
@@ -94,11 +102,27 @@ struct AddIngredientView: View {
         }
     }
 
-    private func saveIngredient() {
+    private func validateAndSave() {
+        guard let caloriesDouble = Double(calories), caloriesDouble >= 0 else {
+            alertMessage = "Please enter a valid number for calories."
+            showAlert = true
+            return
+        }
+
+        guard let quantityDouble = Double(standardQuantity), quantityDouble > 0 else {
+            alertMessage = "Please enter a valid standard quantity greater than zero."
+            showAlert = true
+            return
+        }
+
+        saveIngredient(calories: caloriesDouble, quantity: quantityDouble)
+    }
+
+    private func saveIngredient(calories: Double, quantity: Double) {
         let ingredient = Ingredient(context: viewContext)
         ingredient.name = name
-        ingredient.calories = Double(calories) ?? 0
-        ingredient.standardQuantity = Double(standardQuantity) ?? 1
+        ingredient.calories = calories
+        ingredient.standardQuantity = quantity
         ingredient.standardUnit = standardUnit
         ingredient.foodType = foodType
         ingredient.nutritionFacts = nutritionFacts
@@ -108,7 +132,8 @@ struct AddIngredientView: View {
             try viewContext.save()
             dismiss()
         } catch {
-            print("Failed to save ingredient: \(error.localizedDescription)")
+            alertMessage = "Failed to save ingredient: \(error.localizedDescription)"
+            showAlert = true
         }
     }
 }
