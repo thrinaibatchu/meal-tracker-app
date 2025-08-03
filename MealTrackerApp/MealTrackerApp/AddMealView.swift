@@ -6,10 +6,8 @@ struct AddMealView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
 
-    // MARK: - Optional meal for edit
     var editMeal: Meal?
 
-    // MARK: - Form Fields
     @State private var name: String = ""
     @State private var notes: String = ""
     @State private var mealType: String = "Lunch"
@@ -48,11 +46,21 @@ struct AddMealView: View {
                         }
                     }
                     if let photo = mealPhoto {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 150)
-                            .cornerRadius(8)
+                        VStack(spacing: 8) {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 150)
+                                .cornerRadius(8)
+
+                            Button(role: .destructive) {
+                                mealPhoto = nil
+                                selectedPhotoItem = nil
+                            } label: {
+                                Label("Remove Photo", systemImage: "trash")
+                                    .foregroundColor(.red)
+                            }
+                        }
                     }
                 }
 
@@ -193,6 +201,8 @@ struct AddMealView: View {
 
         if let photo = mealPhoto {
             meal.photo = photo.jpegData(compressionQuality: 0.8)
+        } else {
+            meal.photo = nil
         }
 
         for ingredient in selectedIngredients {

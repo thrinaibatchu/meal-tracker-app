@@ -8,17 +8,38 @@ struct IngredientsView: View {
         animation: .default
     ) private var ingredients: FetchedResults<Ingredient>
 
-    @State private var showingAddIngredient = false
+    @State private var activeIngredient: Ingredient?
+    @State private var showingAddNew = false
 
     var body: some View {
         NavigationView {
             List {
                 ForEach(ingredients) { ingredient in
                     HStack {
-                        Text(ingredient.name ?? "Unnamed")
-                        Spacer()
-                        Text("\(ingredient.calories, specifier: "%.0f") cal")
-                            .foregroundColor(.secondary)
+                        if let imageData = ingredient.image,
+                           let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 30, height: 30)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        } else {
+                            Text(emojiForType(ingredient.foodType ?? "Other"))
+                                .font(.system(size: 24))
+                                .frame(width: 30, height: 30)
+                        }
+
+                        VStack(alignment: .leading) {
+                            Text(ingredient.name ?? "Unnamed")
+                                .font(.headline)
+                            Text(ingredient.foodType ?? "Unknown")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .onTapGesture {
+                        activeIngredient = ingredient
                     }
                 }
                 .onDelete(perform: deleteItems)
@@ -26,14 +47,18 @@ struct IngredientsView: View {
             .navigationTitle("Ingredients")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingAddIngredient = true
-                    }) {
+                    Button {
+                        showingAddNew = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showingAddIngredient) {
+            .sheet(item: $activeIngredient) { ingredient in
+                AddIngredientView(editIngredient: ingredient)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+            .sheet(isPresented: $showingAddNew) {
                 AddIngredientView()
                     .environment(\.managedObjectContext, viewContext)
             }
@@ -46,4 +71,17 @@ struct IngredientsView: View {
         }
         try? viewContext.save()
     }
+    
+    func emojiForType(_ type: String) -> String {
+        switch type {
+        case "Protein": return "🍗"
+        case "Carb": return "🍞"
+        case "Fat": return "🥑"
+        case "Vegetable": return "🥦"
+        case "Fruit": return "🍎"
+        case "Dairy": return "🧀"
+        default: return "🍽️"
+        }
+    }
+
 }

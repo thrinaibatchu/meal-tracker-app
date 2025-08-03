@@ -21,6 +21,8 @@ struct AddIngredientView: View {
     let foodTypes = ["Carb", "Protein", "Fat", "Vegetable", "Fruit", "Dairy", "Other"]
     let quantityUnits = ["gram", "oz", "ml", "tbsp", "tsp", "cup"]
 
+    var editIngredient: Ingredient?
+
     var body: some View {
         NavigationView {
             Form {
@@ -66,24 +68,36 @@ struct AddIngredientView: View {
                         matching: .images,
                         photoLibrary: .shared()
                     ) {
-                        Label("Select Image", systemImage: "photo.on.rectangle")
+                        Label(imageData == nil ? "Select Image" : "Change Image", systemImage: "photo.on.rectangle")
                     }
 
-                    if let imageData, let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 150)
-                            .cornerRadius(10)
+                    if let data = imageData {
+                        if let uiImage = UIImage(data: data) {
+                            VStack(spacing: 8) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 150)
+                                    .cornerRadius(10)
+
+                                Button(role: .destructive) {
+                                    imageData = nil
+                                    selectedImage = nil
+                                } label: {
+                                    Label("Remove Image", systemImage: "trash")
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
                     }
                 }
 
-                Button("Save Ingredient") {
+                Button(editIngredient == nil ? "Save Ingredient" : "Update Ingredient") {
                     validateAndSave()
                 }
                 .disabled(name.isEmpty || calories.isEmpty || standardQuantity.isEmpty)
             }
-            .navigationTitle("Add Ingredient")
+            .navigationTitle(editIngredient == nil ? "Add Ingredient" : "Edit Ingredient")
             .navigationBarItems(trailing: Button("Cancel") {
                 dismiss()
             })
@@ -94,9 +108,21 @@ struct AddIngredientView: View {
             }
             .onChange(of: selectedImage) {
                 Task {
-                    if let data = try? await selectedImage?.loadTransferable(type: Data.self) {
+                    if let item = selectedImage,
+                       let data = try? await item.loadTransferable(type: Data.self) {
                         self.imageData = data
                     }
+                }
+            }
+            .onAppear {
+                if let ing = editIngredient {
+                    name = ing.name ?? ""
+                    calories = String(format: "%.0f", ing.calories)
+                    standardQuantity = String(format: "%.1f", ing.standardQuantity)
+                    standardUnit = ing.standardUnit ?? "gram"
+                    foodType = ing.foodType ?? "Other"
+                    nutritionFacts = ing.nutritionFacts ?? ""
+                    imageData = ing.image
                 }
             }
         }
@@ -119,14 +145,14 @@ struct AddIngredientView: View {
     }
 
     private func saveIngredient(calories: Double, quantity: Double) {
-        let ingredient = Ingredient(context: viewContext)
+        let ingredient = editIngredient ?? Ingredient(context: viewContext)
         ingredient.name = name
         ingredient.calories = calories
         ingredient.standardQuantity = quantity
         ingredient.standardUnit = standardUnit
         ingredient.foodType = foodType
         ingredient.nutritionFacts = nutritionFacts
-        ingredient.image = imageData
+        ingredient.image = imageData // clears if nil
 
         do {
             try viewContext.save()
