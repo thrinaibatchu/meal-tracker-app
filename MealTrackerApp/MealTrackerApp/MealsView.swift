@@ -1,4 +1,3 @@
-// MARK: - Refactored MealsView.swift
 import SwiftUI
 import CoreData
 
@@ -10,12 +9,22 @@ struct MealsView: View {
         animation: .default
     ) private var meals: FetchedResults<Meal>
 
-    @State private var showingAddMeal = false
-    @State private var selectedMealForEdit: Meal? = nil
+    @State private var activeSheet: ActiveSheet?
     @State private var showDeleteError = false
     @State private var deleteErrorMessage = ""
     @State private var previewImage: UIImage? = nil
     @State private var showImagePreview = false
+
+    enum ActiveSheet: Identifiable {
+        case add, edit(Meal)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .edit(let meal): return meal.objectID.uriRepresentation().absoluteString
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -35,7 +44,7 @@ struct MealsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(meal.name ?? "Unnamed Meal")
                                     .font(.headline)
-                                
+
                                 Text(meal.mealType ?? "")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
@@ -58,12 +67,13 @@ struct MealsView: View {
                                    let uiImage = UIImage(data: imageData) {
                                     previewImage = uiImage
                                     showImagePreview = true
+                                } else {
+                                    print("⚠️ Could not decode image for preview.")
                                 }
                             }
                         )
                         .onTapGesture {
-                            selectedMealForEdit = meal
-                            showingAddMeal = true
+                            activeSheet = .edit(meal)
                         }
                     }
                     .onDelete(perform: deleteMeal)
@@ -78,7 +88,7 @@ struct MealsView: View {
 
                 // Floating Add Button
                 Button(action: {
-                    showingAddMeal = true
+                    activeSheet = .add
                 }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
@@ -93,45 +103,50 @@ struct MealsView: View {
                     .padding(.bottom, 20)
                 }
             }
-             .sheet(item: $selectedMealForEdit) { meal in
-                 NavigationView {
-                     AddMealView(editMeal: meal)
-                         .environment(\.managedObjectContext, viewContext)
-                 }
-             }
-             .sheet(isPresented: $showingAddMeal) {
-                 NavigationView {
-                     AddMealView(editMeal: nil)
-                         .environment(\.managedObjectContext, viewContext)
-                 }
-             }
-             .alert("Error", isPresented: $showDeleteError) {
-                 Button("OK", role: .cancel) { }
-             } message: {
-                 Text(deleteErrorMessage)
-             }
-             .fullScreenCover(isPresented: $showImagePreview) {
-                 ZStack(alignment: .topTrailing) {
-                     Color.black.ignoresSafeArea()
-                     if let image = previewImage {
-                         Image(uiImage: image)
-                             .resizable()
-                             .scaledToFit()
-                             .padding()
-                     }
-                     Button {
-                         showImagePreview = false
-                     } label: {
-                         Image(systemName: "xmark.circle.fill")
-                             .font(.largeTitle)
-                             .padding()
-                             .foregroundColor(.white)
-                     }
-                 }
-             }
-         }
-     }
-    
+            .sheet(item: $activeSheet) { sheet in
+                NavigationView {
+                    switch sheet {
+                    case .add:
+                        AddMealView(editMeal: nil)
+                            .environment(\.managedObjectContext, viewContext)
+                    case .edit(let meal):
+                        AddMealView(editMeal: meal)
+                            .environment(\.managedObjectContext, viewContext)
+                    }
+                }
+            }
+            .alert("Error", isPresented: $showDeleteError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(deleteErrorMessage)
+            }
+            .fullScreenCover(isPresented: $showImagePreview) {
+                ZStack(alignment: .topTrailing) {
+                    Color.black.ignoresSafeArea()
+                    if let image = previewImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .padding()
+                    } else {
+                        ProgressView("Loading image...")
+                            .foregroundColor(.white)
+                    }
+
+                    Button {
+                        showImagePreview = false
+                        previewImage = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.largeTitle)
+                            .padding()
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
+    }
+
     private func deleteMeal(at offsets: IndexSet) {
         for index in offsets {
             let meal = meals[index]
@@ -147,8 +162,7 @@ struct MealsView: View {
     }
 
     private func mealTotalCalories(_ meal: Meal) -> Double {
-        let mealIngredients = meal.mealIngredients as? Set<MealIngredient> ?? []
-
+        let mealIngredients = (meal.mealIngredients as? Set<MealIngredient>) ?? []
         return mealIngredients.reduce(0) { total, mi in
             guard let ing = mi.ingredient, ing.standardQuantity > 0 else { return total }
             return total + mi.quantity * (ing.calories / ing.standardQuantity)
