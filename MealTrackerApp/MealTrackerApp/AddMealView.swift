@@ -1,12 +1,13 @@
 import SwiftUI
 import CoreData
+import PhotosUI
 
 struct AddMealView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
 
     // MARK: - Optional meal for edit
-    var existingMeal: Meal?
+    var editMeal: Meal?
 
     // MARK: - Form Fields
     @State private var name: String = ""
@@ -15,6 +16,8 @@ struct AddMealView: View {
     @State private var selectedIngredients: Set<Ingredient> = []
     @State private var ingredientQuantities: [Ingredient: String] = [:]
     @State private var totalCalories: Double = 0
+    @State private var mealPhoto: UIImage? = nil
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
 
     let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack"]
 
@@ -37,6 +40,20 @@ struct AddMealView: View {
 
                     TextEditor(text: $notes)
                         .frame(height: 80)
+
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
+                        HStack {
+                            Image(systemName: "photo")
+                            Text(mealPhoto == nil ? "Select Photo" : "Change Photo")
+                        }
+                    }
+                    if let photo = mealPhoto {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 150)
+                            .cornerRadius(8)
+                    }
                 }
 
                 Section(header: Text("Ingredients")) {
@@ -83,8 +100,8 @@ struct AddMealView: View {
                         .font(.headline)
                 }
 
-                Button(existingMeal == nil ? "Save Meal" : "Update Meal") {
-                    if let meal = existingMeal {
+                Button(editMeal == nil ? "Save Meal" : "Update Meal") {
+                    if let meal = editMeal {
                         updateMeal(meal)
                     } else {
                         saveMeal()
@@ -92,19 +109,28 @@ struct AddMealView: View {
                 }
                 .disabled(name.isEmpty || selectedIngredients.isEmpty)
             }
-            .navigationTitle(existingMeal == nil ? "Add Meal" : "Edit Meal")
+            .navigationTitle(editMeal == nil ? "Add Meal" : "Edit Meal")
             .navigationBarItems(trailing: Button("Cancel") {
                 dismiss()
             })
             .onAppear {
-                if let meal = existingMeal {
+                if let meal = editMeal {
                     preloadMeal(meal)
+                }
+            }
+            .onChange(of: selectedPhotoItem) { newItem in
+                if let item = newItem {
+                    Task {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            mealPhoto = image
+                        }
+                    }
                 }
             }
         }
     }
 
-    // MARK: - Toggle Ingredient
     private func toggleSelection(for ingredient: Ingredient) {
         if selectedIngredients.contains(ingredient) {
             selectedIngredients.remove(ingredient)
@@ -116,7 +142,6 @@ struct AddMealView: View {
         recalculateCalories()
     }
 
-    // MARK: - Recalculate Calories
     private func recalculateCalories() {
         totalCalories = selectedIngredients.reduce(0) { total, ingredient in
             let qty = Double(ingredientQuantities[ingredient] ?? "") ?? 0
@@ -128,28 +153,10 @@ struct AddMealView: View {
         }
     }
 
-    // MARK: - Save New Meal
     private func saveMeal() {
-        let meal = existingMeal ?? Meal(context: viewContext)
-        meal.name = name
-        meal.notes = notes
-        meal.timestamp = existingMeal?.timestamp ?? Date()
-        meal.mealType = mealType
-
-        // Remove old MealIngredients if editing
-        if let existingMealIngredients = meal.mealIngredients as? Set<MealIngredient> {
-            for mi in existingMealIngredients {
-                viewContext.delete(mi)
-            }
-        }
-
-        // Add updated MealIngredients
-        for ingredient in selectedIngredients {
-            let mealIngredient = MealIngredient(context: viewContext)
-            mealIngredient.meal = meal
-            mealIngredient.ingredient = ingredient
-            mealIngredient.quantity = Double(ingredientQuantities[ingredient] ?? "") ?? 0
-        }
+        let meal = Meal(context: viewContext)
+        applyChanges(to: meal)
+        meal.timestamp = Date()
 
         do {
             try viewContext.save()
@@ -159,10 +166,7 @@ struct AddMealView: View {
         }
     }
 
-
-    // MARK: - Update Existing Meal
     private func updateMeal(_ meal: Meal) {
-        // Clear existing meal ingredients
         if let currentSet = meal.mealIngredients as? Set<MealIngredient> {
             for mi in currentSet {
                 viewContext.delete(mi)
@@ -178,11 +182,14 @@ struct AddMealView: View {
         }
     }
 
-    // MARK: - Apply Form Values to Meal
     private func applyChanges(to meal: Meal) {
         meal.name = name
         meal.notes = notes
         meal.mealType = mealType
+
+        if let photo = mealPhoto {
+            meal.photo = photo.jpegData(compressionQuality: 0.8)
+        }
 
         for ingredient in selectedIngredients {
             let mealIngredient = MealIngredient(context: viewContext)
@@ -192,11 +199,14 @@ struct AddMealView: View {
         }
     }
 
-    // MARK: - Preload Form in Edit Mode
     private func preloadMeal(_ meal: Meal) {
         name = meal.name ?? ""
         notes = meal.notes ?? ""
         mealType = meal.mealType ?? "Lunch"
+
+        if let data = meal.photo, let image = UIImage(data: data) {
+            mealPhoto = image
+        }
 
         let mealIngredients = (meal.mealIngredients as? Set<MealIngredient>)?.sorted(by: { $0.quantity > $1.quantity }) ?? []
         for mi in mealIngredients {
