@@ -27,7 +27,7 @@ struct AddMealView: View {
     ) private var ingredients: FetchedResults<Ingredient>
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Meal Info")) {
                     TextField("Meal name", text: $name)
@@ -110,9 +110,13 @@ struct AddMealView: View {
                 .disabled(name.isEmpty || selectedIngredients.isEmpty)
             }
             .navigationTitle(editMeal == nil ? "Add Meal" : "Edit Meal")
-            .navigationBarItems(trailing: Button("Cancel") {
-                dismiss()
-            })
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
             .onAppear {
                 if let meal = editMeal {
                     preloadMeal(meal)
