@@ -39,6 +39,10 @@ struct MealsView: View {
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 70, height: 70)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .onTapGesture {
+                                        previewImage = uiImage
+                                        showImagePreview = true
+                                    }
                             }
 
                             VStack(alignment: .leading, spacing: 4) {
@@ -58,20 +62,10 @@ struct MealsView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle()) // Make full row tappable
-                        .gesture(
-                            LongPressGesture()
-                                .onEnded { _ in
-                                    if let imageData = meal.photo,
-                                       let uiImage = UIImage(data: imageData) {
-                                        previewImage = uiImage
-                                        showImagePreview = true
-                                    }
-                                }
-                        )
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             activeSheet = .edit(meal)
                         }
