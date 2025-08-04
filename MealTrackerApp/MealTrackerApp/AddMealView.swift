@@ -3,6 +3,7 @@
 import SwiftUI
 import CoreData
 import PhotosUI
+import UIKit
 
 struct AddMealView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -200,7 +201,10 @@ struct AddMealView: View {
         meal.name = name
         meal.notes = notes
         meal.mealType = mealType
-        meal.photo = mealPhoto?.jpegData(compressionQuality: 0.8)
+        if let compressed = mealPhoto?.resized(to: CGSize(width: 600, height: 600), compressionQuality: 0.7) {
+            meal.photo = compressed
+        }
+
 
         for ingredient in selectedIngredients {
             let mealIngredient = MealIngredient(context: viewContext)

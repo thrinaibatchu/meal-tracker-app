@@ -149,7 +149,11 @@ struct AddIngredientView: View {
         ingredient.standardUnit = standardUnit
         ingredient.foodType = foodType
         ingredient.nutritionFacts = nutritionFacts
-        ingredient.image = imageData // clears if nil
+        if let data = imageData, let image = UIImage(data: data) {
+            ingredient.image = image.resized(to: CGSize(width: 300, height: 300), compressionQuality: 0.7)
+        } else {
+            ingredient.image = nil
+        }
 
         do {
             try viewContext.save()
