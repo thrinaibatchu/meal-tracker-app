@@ -36,8 +36,10 @@ struct IngredientsView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 4)
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         activeIngredient = ingredient
                     }
@@ -71,7 +73,7 @@ struct IngredientsView: View {
         }
         try? viewContext.save()
     }
-    
+
     func emojiForType(_ type: String) -> String {
         switch type {
         case "Protein": return "🍗"
@@ -83,5 +85,4 @@ struct IngredientsView: View {
         default: return "🍽️"
         }
     }
-
 }

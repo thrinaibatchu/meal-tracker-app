@@ -60,17 +60,17 @@ struct MealsView: View {
                             }
                         }
                         .padding(.vertical, 8)
-                        .contentShape(Rectangle())
-                        .highPriorityGesture(
-                            LongPressGesture().onEnded { _ in
-                                if let imageData = meal.photo,
-                                   let uiImage = UIImage(data: imageData) {
-                                    previewImage = uiImage
-                                    showImagePreview = true
-                                } else {
-                                    print("⚠️ Could not decode image for preview.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle()) // Make full row tappable
+                        .gesture(
+                            LongPressGesture()
+                                .onEnded { _ in
+                                    if let imageData = meal.photo,
+                                       let uiImage = UIImage(data: imageData) {
+                                        previewImage = uiImage
+                                        showImagePreview = true
+                                    }
                                 }
-                            }
                         )
                         .onTapGesture {
                             activeSheet = .edit(meal)
