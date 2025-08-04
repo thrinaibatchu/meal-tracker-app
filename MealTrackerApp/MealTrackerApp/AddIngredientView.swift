@@ -71,23 +71,20 @@ struct AddIngredientView: View {
                         Label(imageData == nil ? "Select Image" : "Change Image", systemImage: "photo.on.rectangle")
                     }
 
-                    if let data = imageData {
-                        if let uiImage = UIImage(data: data) {
-                            VStack(spacing: 8) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 150)
-                                    .cornerRadius(10)
+                    if let data = imageData, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 150)
+                            .cornerRadius(10)
+                            .padding(.vertical, 4)
 
-                                Button(role: .destructive) {
-                                    imageData = nil
-                                    selectedImage = nil
-                                } label: {
-                                    Label("Remove Image", systemImage: "trash")
-                                        .foregroundColor(.red)
-                                }
-                            }
+                        Button(role: .destructive) {
+                            imageData = nil
+                            selectedImage = nil
+                        } label: {
+                            Label("Remove Image", systemImage: "trash")
+                                .foregroundColor(.red)
                         }
                     }
                 }

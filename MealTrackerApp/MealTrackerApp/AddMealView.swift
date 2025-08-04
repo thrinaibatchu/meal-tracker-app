@@ -1,3 +1,5 @@
+// AddMealView.swift
+
 import SwiftUI
 import CoreData
 import PhotosUI
@@ -45,21 +47,21 @@ struct AddMealView: View {
                             Text(mealPhoto == nil ? "Select Photo" : "Change Photo")
                         }
                     }
-                    if let photo = mealPhoto {
-                        VStack(spacing: 8) {
-                            Image(uiImage: photo)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 150)
-                                .cornerRadius(8)
 
-                            Button(role: .destructive) {
-                                mealPhoto = nil
-                                selectedPhotoItem = nil
-                            } label: {
-                                Label("Remove Photo", systemImage: "trash")
-                                    .foregroundColor(.red)
-                            }
+                    if let photo = mealPhoto {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 150)
+                            .cornerRadius(10)
+                            .padding(.vertical, 4)
+
+                        Button(role: .destructive) {
+                            mealPhoto = nil
+                            selectedPhotoItem = nil
+                        } label: {
+                            Label("Remove Photo", systemImage: "trash")
+                                .foregroundColor(.red)
                         }
                     }
                 }
@@ -198,12 +200,7 @@ struct AddMealView: View {
         meal.name = name
         meal.notes = notes
         meal.mealType = mealType
-
-        if let photo = mealPhoto {
-            meal.photo = photo.jpegData(compressionQuality: 0.8)
-        } else {
-            meal.photo = nil
-        }
+        meal.photo = mealPhoto?.jpegData(compressionQuality: 0.8)
 
         for ingredient in selectedIngredients {
             let mealIngredient = MealIngredient(context: viewContext)
