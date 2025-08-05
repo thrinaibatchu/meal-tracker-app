@@ -32,9 +32,15 @@ struct IngredientsView: View {
                         VStack(alignment: .leading) {
                             Text(ingredient.name ?? "Unnamed")
                                 .font(.headline)
-                            Text(ingredient.foodType ?? "Unknown")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            if let brand = ingredient.brand, !brand.isEmpty {
+                                Text(brand)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(ingredient.foodType ?? "Unknown")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
