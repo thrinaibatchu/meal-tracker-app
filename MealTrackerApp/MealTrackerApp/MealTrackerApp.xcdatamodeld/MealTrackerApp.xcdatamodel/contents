@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Entity" representedClassName="Entity" syncable="YES" codeGenerationType="class"/>
-    <entity name="Ingredient" representedClassName="Ingredient" syncable="YES" codeGenerationType="class">
+    <entity name="Ingredient" representedClassName="Ingredient" syncable="YES" codeGenerationType="manual/none">
         <attribute name="calories" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="caloriesPerUnit" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="foodType" optional="YES" attributeType="String"/>
@@ -12,6 +12,13 @@
         <attribute name="standardQuantity" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="standardUnit" optional="YES" attributeType="String"/>
         <attribute name="unit" optional="YES" attributeType="String"/>
+        <attribute name="protein" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="fat" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="carbs" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="fiber" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="servingSize" optional="YES" attributeType="String"/>
+        <attribute name="brand" optional="YES" attributeType="String"/>
+        <attribute name="upc" optional="YES" attributeType="String"/>
         <relationship name="mealIngredients" toMany="YES" deletionRule="Nullify" destinationEntity="MealIngredient" inverseName="ingredient" inverseEntity="MealIngredient"/>
     </entity>
     <entity name="Meal" representedClassName=".Meal" syncable="YES" codeGenerationType="class">

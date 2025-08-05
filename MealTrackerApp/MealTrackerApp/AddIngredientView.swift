@@ -15,6 +15,14 @@ struct AddIngredientView: View {
     @State private var selectedImage: PhotosPickerItem?
     @State private var imageData: Data?
 
+    @State private var protein: String = ""
+    @State private var fat: String = ""
+    @State private var carbs: String = ""
+    @State private var fiber: String = ""
+    @State private var servingSize: String = ""
+    @State private var brand: String = ""
+    @State private var upc: String = ""
+
     @State private var showAlert = false
     @State private var alertMessage = ""
 
@@ -60,6 +68,23 @@ struct AddIngredientView: View {
                     TextEditor(text: $nutritionFacts)
                         .frame(height: 100)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
+                }
+
+                Section(header: Text("Macros (optional)")) {
+                    TextField("Protein (g)", text: $protein)
+                        .keyboardType(.decimalPad)
+                    TextField("Fat (g)", text: $fat)
+                        .keyboardType(.decimalPad)
+                    TextField("Carbs (g)", text: $carbs)
+                        .keyboardType(.decimalPad)
+                    TextField("Fiber (g)", text: $fiber)
+                        .keyboardType(.decimalPad)
+                }
+
+                Section(header: Text("Additional Info (optional)")) {
+                    TextField("Serving Size", text: $servingSize)
+                    TextField("Brand", text: $brand)
+                    TextField("UPC", text: $upc)
                 }
 
                 Section(header: Text("Image (optional)")) {
@@ -120,6 +145,13 @@ struct AddIngredientView: View {
                     foodType = ing.foodType ?? "Other"
                     nutritionFacts = ing.nutritionFacts ?? ""
                     imageData = ing.image
+                    protein = ing.protein == 0 ? "" : String(format: "%.1f", ing.protein)
+                    fat = ing.fat == 0 ? "" : String(format: "%.1f", ing.fat)
+                    carbs = ing.carbs == 0 ? "" : String(format: "%.1f", ing.carbs)
+                    fiber = ing.fiber == 0 ? "" : String(format: "%.1f", ing.fiber)
+                    servingSize = ing.servingSize ?? ""
+                    brand = ing.brand ?? ""
+                    upc = ing.upc ?? ""
                 }
             }
         }
@@ -149,6 +181,13 @@ struct AddIngredientView: View {
         ingredient.standardUnit = standardUnit
         ingredient.foodType = foodType
         ingredient.nutritionFacts = nutritionFacts
+        ingredient.protein = Double(protein) ?? 0
+        ingredient.fat = Double(fat) ?? 0
+        ingredient.carbs = Double(carbs) ?? 0
+        ingredient.fiber = Double(fiber) ?? 0
+        ingredient.servingSize = servingSize.isEmpty ? nil : servingSize
+        ingredient.brand = brand.isEmpty ? nil : brand
+        ingredient.upc = upc.isEmpty ? nil : upc
         if let data = imageData, let image = UIImage(data: data) {
             ingredient.image = image.resized(to: CGSize(width: 300, height: 300), compressionQuality: 0.7)
         } else {
