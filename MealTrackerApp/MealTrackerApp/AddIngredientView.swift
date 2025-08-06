@@ -6,6 +6,12 @@ struct AddIngredientView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
 
+    // Lookup states
+    @State private var searchText: String = ""
+    @State private var suggestions: [NutritionSuggestion] = []
+    @State private var fetchedNutrition: NutritionInfo?
+    private let nutritionService = NutritionService()
+
     @State private var name: String = ""
     @State private var calories: String = ""
     @State private var standardQuantity: String = ""
@@ -34,6 +40,37 @@ struct AddIngredientView: View {
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Search")) {
+                    TextField("Search Ingredient", text: $searchText)
+                        .onChange(of: searchText) { newValue in
+                            Task {
+                                if newValue.count > 1 {
+                                    suggestions = (try? await nutritionService.searchIngredients(query: newValue)) ?? []
+                                } else {
+                                    suggestions = []
+                                }
+                            }
+                        }
+
+                    ForEach(suggestions) { suggestion in
+                        Button(suggestion.name) {
+                            selectSuggestion(suggestion)
+                        }
+                    }
+                }
+
+                if let preview = fetchedNutrition {
+                    Section(header: Text("Nutrition Preview")) {
+                        Text("Calories: \(Int(preview.calories))")
+                        Text("Protein: \(preview.protein, specifier: \"%.1f\") g")
+                        Text("Fat: \(preview.fat, specifier: \"%.1f\") g")
+                        Text("Carbs: \(preview.carbs, specifier: \"%.1f\") g")
+                        if preview.fiber > 0 {
+                            Text("Fiber: \(preview.fiber, specifier: \"%.1f\") g")
+                        }
+                    }
+                }
+
                 Section(header: Text("Ingredient Info")) {
                     TextField("Name", text: $name)
 
@@ -201,5 +238,34 @@ struct AddIngredientView: View {
             alertMessage = "Failed to save ingredient: \(error.localizedDescription)"
             showAlert = true
         }
+    }
+
+    private func selectSuggestion(_ suggestion: NutritionSuggestion) {
+        searchText = suggestion.name
+        suggestions = []
+        Task {
+            do {
+                let info = try await nutritionService.fetchNutrition(for: suggestion)
+                fetchedNutrition = info
+                applyNutrition(info)
+            } catch {
+                alertMessage = "Lookup failed: \(error.localizedDescription)"
+                showAlert = true
+            }
+        }
+    }
+
+    private func applyNutrition(_ info: NutritionInfo) {
+        name = info.name
+        calories = String(format: "%.0f", info.calories)
+        standardQuantity = String(format: "%.1f", info.quantity)
+        standardUnit = info.unit
+        protein = info.protein == 0 ? "" : String(format: "%.1f", info.protein)
+        fat = info.fat == 0 ? "" : String(format: "%.1f", info.fat)
+        carbs = info.carbs == 0 ? "" : String(format: "%.1f", info.carbs)
+        fiber = info.fiber == 0 ? "" : String(format: "%.1f", info.fiber)
+        servingSize = info.servingSize ?? ""
+        brand = info.brand ?? ""
+        upc = info.upc ?? ""
     }
 }
